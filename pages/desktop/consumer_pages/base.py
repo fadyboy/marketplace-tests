@@ -30,20 +30,19 @@ class Base(Page):
         WebDriverWait(self.selenium, self.timeout).until(lambda s: not self.is_element_present(*self._loading_balloon_locator))
 
     def login(self, user = "default"):
-        from pages.desktop.login import Login
-        login_page = Login(self.testsetup)
+
+        self.footer.click_login()
+
+        from browserid.pages.webdriver.sign_in import SignIn
 
         if isinstance(user, MockUser):
-            bid_login = login_page.click_login_register(expect='returning')
+            bid_login = SignIn(self.selenium, self.timeout, expect='returning')
             bid_login.click_sign_in_returning_user()
 
         elif isinstance(user, str):
-            bid_login = login_page.click_login_register(expect='new')
+            bid_login = SignIn(self.selenium, self.timeout, expect='new')
             credentials = self.testsetup.credentials[user]
             bid_login.sign_in(credentials['email'], credentials['password'])
-
-        else:
-            return False
 
         WebDriverWait(self.selenium, self.timeout).until(lambda s: self.footer.is_user_logged_in)
 
@@ -51,9 +50,10 @@ class Base(Page):
         #saves the current url
         current_url = self.selenium.current_url
 
-        from pages.desktop.login import Login
-        login_page = Login(self.testsetup)
-        bid_login = login_page.click_login_register(expect="new")
+        self.footer.click_login()
+
+        from browserid.pages.webdriver.sign_in import SignIn
+        bid_login = SignIn(self.selenium, self.timeout, expect='new')
 
         # creates the new user in the browserID pop up
         bid_login.sign_in_new_user(user['email'], user['password'])
@@ -143,6 +143,7 @@ class Base(Page):
 
     class FooterRegion(Page):
 
+        _login_locator = (By.CSS_SELECTOR, "a.browserid")
         _account_controller_locator = (By.CSS_SELECTOR, "#site-footer > div.account.authenticated > a:nth-child(1)")
         _logout_locator = (By.CSS_SELECTOR, "#site-footer > div.account.authenticated > a.logout")
 
@@ -153,6 +154,9 @@ class Base(Page):
         def is_user_logged_in(self):
             return self.is_element_visible(*self._account_controller_locator)
 
+        def click_login(self):
+            self.selenium.find_element(*self._login_locator).click()
+        
         def click_logout(self):
             self.selenium.find_element(*self._logout_locator).click()
 
